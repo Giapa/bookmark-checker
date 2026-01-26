@@ -1,4 +1,5 @@
 mod html_parser;
+mod url_checker;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file_path = "./merika-bookmarks.html";
@@ -8,5 +9,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (url, nodes) in &duplicate_bookmarks {
         println!("Duplicate URL found: {} (nodes {})", url, nodes.len());
     }
+    url_checker::check_urls(&bookmarks);
     Ok(())
 }
