@@ -1,6 +1,5 @@
-mod html_parser;
-mod url_checker;
-
+use bookmark_checker::html_parser;
+use bookmark_checker::url_checker;
 use clap::Parser;
 use std::path::{Path, PathBuf};
 

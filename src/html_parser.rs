@@ -61,13 +61,14 @@ pub fn list_duplicate_bookmarks(
 
 pub fn remove_duplicate_bookmarks(duplicate_bookmarks: &HashMap<String, Vec<Handle>>) {
     for (url, handles) in duplicate_bookmarks {
-        if let Some(handle) = handles.last() {
-            println!("Removing last duplicate of: {}", url);
+        // Keep the first occurrence, remove all others
+        for handle in handles.iter().skip(1) {
+            println!("Removing duplicate of: {}", url);
             if let Some(parent) = handle.parent.take().and_then(|weak| weak.upgrade()) {
                 parent
                     .children
                     .borrow_mut()
-                    .retain(|child| !std::ptr::eq(child as *const _, handle as *const _));
+                    .retain(|child| !std::rc::Rc::ptr_eq(child, handle));
             }
         }
     }
@@ -77,12 +78,11 @@ pub fn remove_bookmarks(outdated_urls: &HashMap<String, Vec<Handle>>) {
     for (url, handles) in outdated_urls {
         println!("Removing {} instances of: {}", handles.len(), url);
         for handle in handles {
-            // Remove the node from its parent
             if let Some(parent) = handle.parent.take().and_then(|weak| weak.upgrade()) {
                 parent
                     .children
                     .borrow_mut()
-                    .retain(|child| !std::ptr::eq(child as *const _, handle as *const _));
+                    .retain(|child| !std::rc::Rc::ptr_eq(child, handle));
             }
         }
     }
