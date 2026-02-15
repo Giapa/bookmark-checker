@@ -120,3 +120,57 @@ fn save_html_to_file_creates_output() {
     // Clean up
     fs::remove_file(output_path).ok();
 }
+
+#[test]
+fn remove_duplicates_end_to_end_saved_file_has_no_duplicates() {
+    let dom = html_parser::parse_html_file("tests/fixtures/duplicates.html").unwrap();
+    let bookmarks = html_parser::get_all_bookmarks(&dom);
+    let duplicates = html_parser::list_duplicate_bookmarks(&bookmarks);
+
+    assert_eq!(duplicates.len(), 2);
+    html_parser::remove_duplicate_bookmarks(&duplicates);
+
+    let output_path = "tests/fixtures/dedup_output.html";
+    html_parser::save_html_to_file(&dom, output_path).unwrap();
+
+    // Re-parse the saved file from disk and verify no duplicates remain
+    let dom2 = html_parser::parse_html_file(output_path).unwrap();
+    let bookmarks2 = html_parser::get_all_bookmarks(&dom2);
+    let duplicates2 = html_parser::list_duplicate_bookmarks(&bookmarks2);
+
+    assert_eq!(duplicates2.len(), 0, "Saved file should have no duplicates");
+    assert_eq!(bookmarks2.len(), 3, "Should still have 3 unique bookmarks");
+
+    // Clean up
+    fs::remove_file(output_path).ok();
+}
+
+#[test]
+fn remove_bookmarks_end_to_end_saved_file_missing_removed_urls() {
+    let dom = html_parser::parse_html_file("tests/fixtures/duplicates.html").unwrap();
+    let bookmarks = html_parser::get_all_bookmarks(&dom);
+
+    // Remove all instances of example.com
+    let mut to_remove = std::collections::HashMap::new();
+    let url = "https://www.example.com".to_string();
+    if let Some(handles) = bookmarks.get(&url) {
+        to_remove.insert(url.clone(), handles.clone());
+    }
+    html_parser::remove_bookmarks(&to_remove);
+
+    let output_path = "tests/fixtures/removed_output.html";
+    html_parser::save_html_to_file(&dom, output_path).unwrap();
+
+    // Re-parse saved file and verify the URL is gone
+    let dom2 = html_parser::parse_html_file(output_path).unwrap();
+    let bookmarks2 = html_parser::get_all_bookmarks(&dom2);
+
+    assert!(
+        !bookmarks2.contains_key("https://www.example.com"),
+        "Removed URL should not be in saved file"
+    );
+    assert_eq!(bookmarks2.len(), 2, "Should have 2 remaining bookmarks");
+
+    // Clean up
+    fs::remove_file(output_path).ok();
+}
